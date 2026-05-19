@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biometric Anatomy Explorer</title>
+
+    <script type="text/javascript" src="https://static.sketchfab.com/api/sketchfab-viewer-1.12.1.js"></script>
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+
+    <style>
+        /* Modern, Clean Dark Theme */
+        :root {
+            --bg-deep: #050508;
+            --bg-glass: rgba(20, 20, 25, 0.6);
+            --neon-blue: #00d2ff;
+            --text-main: #ffffff;
+            --text-muted: #9ca3af;
+            --border-glow: rgba(0, 210, 255, 0.2);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-deep);
+            font-family: 'Inter', sans-serif;
+            color: var(--text-main);
+            overflow-x: hidden;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-deep);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 10px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 60px 20px;
+        }
+
+        /* Header */
+        h1,
+        h2 {
+            font-family: 'Space Grotesk', sans-serif;
+            margin: 0;
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .hero h1 {
+            font-size: 52px;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+
+        .hero p {
+            font-size: 18px;
+            color: var(--text-muted);
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* The Presentation Glass Card */
+        .glass-panel {
+            background: var(--bg-glass);
+            border: 1px solid var(--border-glow);
+            border-radius: 20px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 80px;
+        }
+
+        /* 100% UNCLICKABLE 3D VIEWER */
+        .viewport-wrapper {
+            width: 100%;
+            height: 600px;
+            background: #000;
+            position: relative;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            pointer-events: none;
+            /* THIS IS THE MAGIC FIX. IT CANNOT BE TOUCHED NOW. */
+        }
+
+        /* Simplified, Elegant Text Panel */
+        .telemetry-panel {
+            padding: 30px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 40px;
+            border-top: 1px solid var(--border-glow);
+            background: rgba(0, 0, 0, 0.4);
+        }
+
+        .data-stream h2 {
+            font-size: 28px;
+            color: var(--neon-blue);
+            margin-bottom: 10px;
+        }
+
+        .data-stream p {
+            font-size: 16px;
+            color: #d1d5db;
+            line-height: 1.6;
+            min-height: 80px;
+            margin: 0;
+            max-width: 700px;
+        }
+
+        .system-controls {
+            display: flex;
+            gap: 15px;
+        }
+
+        button {
+            padding: 14px 28px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 600;
+            font-size: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-prev {
+            background: transparent;
+            border: 1px solid #444;
+            color: var(--text-muted);
+        }
+
+        .btn-prev:hover:not(:disabled) {
+            border-color: #fff;
+            color: #fff;
+        }
+
+        .btn-next {
+            background: var(--neon-blue);
+            color: #000;
+            box-shadow: 0 5px 20px rgba(0, 210, 255, 0.3);
+        }
+
+        .btn-next:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 210, 255, 0.5);
+        }
+
+        button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        /* Cinematic 3D Scan Carousel */
+        .scan-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .scan-header h2 {
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+
+        .scan-header p {
+            color: var(--text-muted);
+            font-size: 16px;
+        }
+
+        .carousel-container {
+            display: none;
+            margin-bottom: 60px;
+        }
+
+        .carousel-track {
+            display: flex;
+            gap: 20px;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            padding-bottom: 20px;
+        }
+
+        .scan-card {
+            flex: 0 0 100%;
+            height: 500px;
+            scroll-snap-align: center;
+            background: #000;
+            border-radius: 16px;
+            border: 1px solid var(--border-glow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        model-viewer {
+            width: 100%;
+            height: 100%;
+            background-color: #050508;
+        }
+
+        .scan-label {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border-glow);
+            font-family: 'Space Grotesk';
+            color: #fff;
+            font-size: 18px;
+            pointer-events: none;
+        }
+
+        /* Empty State */
+        .empty-state {
+            width: 100%;
+            height: 250px;
+            border-radius: 16px;
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: var(--text-muted);
+            font-family: 'Inter';
+            font-size: 16px;
+            margin-bottom: 60px;
+        }
+
+        /* GLOBAL DRAG OVERLAY */
+        #global-drop-zone {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(10px);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        #global-drop-zone.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .upload-text {
+            font-family: 'Space Grotesk';
+            font-size: 36px;
+            color: #fff;
+            margin-bottom: 10px;
+        }
+
+        .upload-sub {
+            color: var(--neon-blue);
+            font-size: 18px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="global-drop-zone">
+        <div style="font-size: 60px; margin-bottom: 20px;">📥</div>
+        <div class="upload-text">Drop 3D Scan Here</div>
+        <div class="upload-sub">Release your .GLB file to view it</div>
+    </div>
+
+    <div class="container">
+
+        <div class="hero">
+            <h1>The Human Respiratory System</h1>
+            <p>An educational look at how our bodies breathe, combining 3D interactive models with real-world photogrammetry scans.</p>
+        </div>
+
+        <div class="glass-panel">
+            <div class="viewport-wrapper">
+                <iframe id="api-frame" allow="autoplay; fullscreen; xr-spatial-tracking" execution-while-out-of-viewport execution-while-not-rendered web-share></iframe>
+            </div>
+
+            <div class="telemetry-panel">
+                <div class="data-stream">
+                    <h2 id="organTitle">Guided Tour Ready</h2>
+                    <p id="organDesc">Click "Start Tour" to begin exploring the anatomy of the lungs.</p>
+                </div>
+                <div class="system-controls">
+                    <button class="btn-prev" id="btnPrev" onclick="prevAnnotation()" disabled>Back</button>
+                    <button class="btn-next" id="btnNext" onclick="nextAnnotation()">Start Tour</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="scan-header">
+            <h2>Real World Scans</h2>
+            <p>Drag and drop your own 3D scans anywhere on the screen to view them.</p>
+        </div>
+
+        <div class="empty-state" id="empty-state">
+            Awaiting .GLB file upload...
+        </div>
+
+        <div class="carousel-container" id="carousel-container">
+            <div class="carousel-track" id="carousel-track">
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // ==========================================
+        // DRAG & DROP LOGIC
+        // ==========================================
+        const globalDropZone = document.getElementById('global-drop-zone');
+        const emptyState = document.getElementById('empty-state');
+        const carouselContainer = document.getElementById('carousel-container');
+        const carouselTrack = document.getElementById('carousel-track');
+        let scanCount = 1;
+        let dragCounter = 0;
+
+        window.addEventListener('dragenter', (e) => {
+            e.preventDefault();
+            dragCounter++;
+            globalDropZone.classList.add('active');
+        });
+
+        window.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            dragCounter--;
+            if (dragCounter === 0) globalDropZone.classList.remove('active');
+        });
+
+        window.addEventListener('dragover', (e) => {
+            e.preventDefault();
+        });
+
+        window.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dragCounter = 0;
+            globalDropZone.classList.remove('active');
+
+            const files = e.dataTransfer.files;
+            let loaded = false;
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                if (file.name.endsWith('.glb') || file.name.endsWith('.gltf')) {
+                    loaded = true;
+                    const objectURL = URL.createObjectURL(file);
+
+                    const card = document.createElement('div');
+                    card.className = 'scan-card';
+
+                    const viewer = document.createElement('model-viewer');
+                    viewer.src = objectURL;
+                    viewer.setAttribute('camera-controls', '');
+                    viewer.setAttribute('auto-rotate', '');
+                    viewer.setAttribute('shadow-intensity', '2');
+                    viewer.setAttribute('environment-image', 'neutral');
+
+                    const label = document.createElement('div');
+                    label.className = 'scan-label';
+                    label.innerText = "Custom Scan 0" + scanCount++;
+
+                    card.appendChild(viewer);
+                    card.appendChild(label);
+                    carouselTrack.appendChild(card);
+                }
+            }
+
+            if (loaded) {
+                emptyState.style.display = 'none';
+                carouselContainer.style.display = 'block';
+                setTimeout(() => {
+                    carouselTrack.scrollLeft = carouselTrack.scrollWidth;
+                }, 100);
+            } else {
+                alert("Please drop a valid .GLB 3D model.");
+            }
+        });
+
+        // ==========================================
+        // SKETCHFAB LOGIC & SIMPLIFIED PARENT TEXT
+        // ==========================================
+        var iframe = document.getElementById('api-frame');
+        var client = new Sketchfab('1.12.1', iframe);
+        var apiRef = null;
+        var annotationsData = [];
+        var currentIndex = -1;
+
+        // SMART DICTIONARY - Beautiful, simple, educational text!
+        function getExplanation(name) {
+            let n = name.toLowerCase();
+            if (n.includes("nasal")) return "The main entry point for the air we breathe. It warms, moisturizes, and filters out dust before the air travels deeper into the body.";
+            if (n.includes("pharynx")) return "Commonly known as the throat. It acts as a shared pathway, directing air toward the lungs and food toward the stomach.";
+            if (n.includes("larynx")) return "The voice box. It holds our vocal cords and features a special flap (the epiglottis) that prevents food from accidentally entering our airways.";
+            if (n.includes("trachea")) return "The windpipe. It is reinforced with strong cartilage rings to ensure the main airway stays open at all times.";
+            if (n.includes("bronch")) return "The main tubes that branch off from the windpipe, delivering oxygen-rich air directly into the left and right lungs.";
+            if (n.includes("lung") || n.includes("alveoli")) return "The primary organs of breathing. Inside, millions of tiny air sacs exchange vital gases—absorbing fresh oxygen into the blood and removing carbon dioxide.";
+            if (n.includes("diaphragm")) return "A powerful muscle sitting just below the lungs. When it flexes, it creates a vacuum that effortlessly pulls air into the chest.";
+            return "A vital component of human anatomy.";
+        }
+
+        // IF YOU FIND A BETTER MODEL ON SKETCHFAB, PASTE THE NEW ID RIGHT HERE:
+        client.init('250911151757489da1cf5501b791f363', {
+            success: function onSuccess(api) {
+                apiRef = api;
+                api.start();
+                api.addEventListener('viewerready', function() {
+                    api.getAnnotationList(function(err, annotations) {
+                        if (!err) annotationsData = annotations;
+                    });
+                });
+            },
+            error: function onError() {
+                console.log('Viewer Error');
+            },
+            autostart: 1,
+            ui_infos: 0,
+            ui_controls: 0,
+            ui_stop: 0,
+            ui_watermark: 0,
+            ui_hint: 0,
+            ui_annotations: 0
+        });
+
+        function updateUI() {
+            document.getElementById('organTitle').innerText = annotationsData[currentIndex].name;
+            document.getElementById('organDesc').innerText = getExplanation(annotationsData[currentIndex].name);
+            document.getElementById('btnPrev').disabled = (currentIndex === 0);
+
+            let btnNext = document.getElementById('btnNext');
+            if (currentIndex === annotationsData.length - 1) {
+                btnNext.innerText = "Finish Tour";
+                btnNext.disabled = true;
+            } else {
+                btnNext.innerText = "Next Part";
+                btnNext.disabled = false;
+            }
+        }
+
+        function nextAnnotation() {
+            if (currentIndex < annotationsData.length - 1) {
+                currentIndex++;
+                apiRef.gotoAnnotation(currentIndex, {
+                    preventCameraAnimation: false
+                });
+                updateUI();
+            }
+        }
+
+        function prevAnnotation() {
+            if (currentIndex > 0) {
+                currentIndex--;
+                apiRef.gotoAnnotation(currentIndex, {
+                    preventCameraAnimation: false
+                });
+                updateUI();
+            }
+        }
+    </script>
+</body>
+
+</html>
