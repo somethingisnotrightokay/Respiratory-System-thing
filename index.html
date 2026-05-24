@@ -1,1324 +1,824 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Biometric Anatomy Explorer</title>
-    <script type="text/javascript" src="https://static.sketchfab.com/api/sketchfab-viewer-1.12.1.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-    <!-- Post-processing and helpers (non-module) -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/postprocessing/EffectComposer.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/postprocessing/RenderPass.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/postprocessing/ShaderPass.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/shaders/CopyShader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/postprocessing/BokehPass.js"></script>
-    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg-deep: #050508;
-            --bg-glass: rgba(20, 20, 25, 0.6);
-            --neon-blue: #00d2ff;
-            --text-main: #ffffff;
-            --text-muted: #9ca3af;
-            --border-glow: rgba(0, 210, 255, 0.2);
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cinematic Respiratory Simulation v4</title>
 
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: var(--bg-deep);
-            font-family: 'Inter', sans-serif;
-            color: var(--text-main);
-            overflow-x: hidden;
-        }
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/postprocessing/EffectComposer.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/postprocessing/RenderPass.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: var(--bg-deep); }
-        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #020408;
+      font-family: Inter, sans-serif;
+      color: white;
+    }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 60px 20px;
-        }
+    canvas {
+      display: block;
+    }
 
-        h1, h2 {
-            font-family: 'Space Grotesk', sans-serif;
-            margin: 0;
-        }
+    .ui {
+      position: fixed;
+      left: 20px;
+      top: 20px;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 12px 16px;
+      border: 1px solid rgba(0, 255, 255, 0.2);
+      border-radius: 10px;
+      backdrop-filter: blur(10px);
+      z-index: 10;
+    }
 
-        .hero {
-            text-align: center;
-            margin-bottom: 60px;
-        }
-
-        .hero h1 {
-            font-size: 52px;
-            font-weight: 700;
-            margin-bottom: 15px;
-        }
-
-        .hero p {
-            font-size: 18px;
-            color: var(--text-muted);
-            max-width: 600px;
-            margin: 0 auto;
-            line-height: 1.6;
-        }
-
-        .glass-panel {
-            background: var(--bg-glass);
-            border: 1px solid var(--border-glow);
-            border-radius: 20px;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            margin-bottom: 80px;
-        }
-
-        .viewport-wrapper {
-            width: 100%;
-            height: 600px;
-            background: #000;
-            position: relative;
-        }
-
-        iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-            pointer-events: none;
-        }
-
-        .telemetry-panel {
-            padding: 30px 40px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 40px;
-            border-top: 1px solid var(--border-glow);
-            background: rgba(0, 0, 0, 0.4);
-        }
-
-        .data-stream h2 {
-            font-size: 28px;
-            color: var(--neon-blue);
-            margin-bottom: 10px;
-        }
-
-        .data-stream p {
-            font-size: 16px;
-            color: #d1d5db;
-            line-height: 1.6;
-            min-height: 80px;
-            margin: 0;
-            max-width: 700px;
-        }
-
-        .system-controls {
-            display: flex;
-            gap: 15px;
-        }
-
-        button {
-            padding: 14px 28px;
-            border-radius: 8px;
-            border: none;
-            cursor: pointer;
-            font-family: 'Space Grotesk', sans-serif;
-            font-weight: 600;
-            font-size: 15px;
-            transition: all 0.3s ease;
-        }
-
-        .btn-prev {
-            background: transparent;
-            border: 1px solid #444;
-            color: var(--text-muted);
-        }
-
-        .btn-prev:hover:not(:disabled) {
-            border-color: #fff;
-            color: #fff;
-        }
-
-        .btn-next {
-            background: var(--neon-blue);
-            color: #000;
-            box-shadow: 0 5px 20px rgba(0, 210, 255, 0.3);
-        }
-
-        .btn-next:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0, 210, 255, 0.5);
-        }
-
-        button:disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
-        }
-
-        .scan-header {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-
-        .scan-header h2 {
-            font-size: 36px;
-            margin-bottom: 10px;
-        }
-
-        .scan-header p {
-            color: var(--text-muted);
-            font-size: 16px;
-        }
-
-        .carousel-container {
-            display: none;
-            margin-bottom: 60px;
-        }
-
-        .carousel-track {
-            display: flex;
-            gap: 20px;
-            overflow-x: auto;
-            scroll-snap-type: x mandatory;
-            padding-bottom: 20px;
-        }
-
-        .scan-card {
-            flex: 0 0 100%;
-            height: 500px;
-            scroll-snap-align: center;
-            background: #000;
-            border-radius: 16px;
-            border: 1px solid var(--border-glow);
-            position: relative;
-            overflow: hidden;
-        }
-
-        model-viewer {
-            width: 100%;
-            height: 100%;
-            background-color: #050508;
-        }
-
-        .scan-label {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 10px 20px;
-            border-radius: 8px;
-            border: 1px solid var(--border-glow);
-            font-family: 'Space Grotesk';
-            color: #fff;
-            font-size: 18px;
-            pointer-events: none;
-        }
-
-        .empty-state {
-            width: 100%;
-            height: 250px;
-            border-radius: 16px;
-            border: 2px dashed rgba(255, 255, 255, 0.2);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: var(--text-muted);
-            font-family: 'Inter';
-            font-size: 16px;
-            margin-bottom: 60px;
-        }
-
-        #global-drop-zone {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(0, 0, 0, 0.9);
-            backdrop-filter: blur(10px);
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s;
-        }
-
-        #global-drop-zone.active {
-            opacity: 1;
-            pointer-events: all;
-        }
-
-        .upload-text {
-            font-family: 'Space Grotesk';
-            font-size: 36px;
-            color: #fff;
-            margin-bottom: 10px;
-        }
-
-        .upload-sub {
-            color: var(--neon-blue);
-            font-size: 18px;
-        }
-
-        /* Three.js respiratory tour */
-        .resp-section { margin-bottom: 80px; }
-        .resp-shell {
-            background: var(--bg-glass);
-            border: 1px solid var(--border-glow);
-            border-radius: 20px;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-            overflow: hidden;
-        }
-        .resp-viewport {
-            position: relative;
-            width: 100%;
-            height: 620px;
-            background: radial-gradient(circle at 50% 30%, rgba(0,210,255,0.12), transparent 45%), #000;
-        }
-        #respCanvas {
-            width: 100%;
-            height: 100%;
-            display: block;
-        }
-        .resp-overlay {
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-        }
-        .resp-stage-badge {
-            position: absolute;
-            left: 20px;
-            top: 20px;
-            background: rgba(0, 0, 0, 0.72);
-            border: 1px solid var(--border-glow);
-            border-radius: 10px;
-            padding: 10px 14px;
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 14px;
-            color: #fff;
-        }
-        .resp-telemetry {
-            border-top: 1px solid var(--border-glow);
-            background: rgba(0, 0, 0, 0.4);
-        }
-    </style>
+    button {
+      margin-top: 10px;
+      padding: 10px 14px;
+      border: none;
+      background: #00d2ff;
+      color: black;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 8px;
+    }
+  </style>
 </head>
+
 <body>
-    <div id="global-drop-zone">
-        <div style="font-size: 60px; margin-bottom: 20px;">📥</div>
-        <div class="upload-text">Drop 3D Scan Here</div>
-        <div class="upload-sub">Release your .GLB file to view it</div>
-    </div>
-
-    <div class="container">
-        <div class="hero">
-            <h1>The Human Respiratory System</h1>
-            <p>An educational look at how our bodies breathe, combining 3D interactive models with real-world photogrammetry scans.</p>
-        </div>
-
-        <div class="glass-panel">
-            <div class="viewport-wrapper">
-                <iframe id="api-frame" allow="autoplay; fullscreen; xr-spatial-tracking" execution-while-out-of-viewport execution-while-not-rendered web-share></iframe>
-            </div>
-            <div class="telemetry-panel">
-                <div class="data-stream">
-                    <h2 id="organTitle">Guided Tour Ready</h2>
-                    <p id="organDesc">Click "Start Tour" to begin exploring the anatomy of the lungs.</p>
-                </div>
-                <div class="system-controls">
-                    <button class="btn-prev" id="btnPrev" onclick="prevAnnotation()" disabled>Back</button>
-                    <button class="btn-next" id="btnNext" onclick="nextAnnotation()">Start Tour</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="resp-section">
-            <div class="scan-header">
-                <h2>Respiratory Cutaway Tour</h2>
-                <p>Click through the airway step by step. The camera will focus on each structure as the explanation updates.</p>
-            </div>
-
-            <div class="resp-shell">
-                <div class="resp-viewport">
-                    <canvas id="respCanvas"></canvas>
-                    <div class="resp-overlay">
-                        <div class="resp-stage-badge" id="respBadge">Stage 1</div>
-                        <div id="respLabel" style="position:absolute;right:20px;top:20px;background:rgba(0,0,0,0.6);padding:8px 12px;border-radius:8px;border:1px solid rgba(0,210,255,0.12);font-family:Space Grotesk;font-size:13px;">Overview</div>
-                        <div id="respHint" style="position:absolute;left:20px;bottom:16px;background:rgba(0,0,0,0.6);padding:8px 12px;border-radius:8px;border:1px solid rgba(0,210,255,0.06);font-family:Inter;font-size:13px;color:#cbd5e1;pointer-events:none;">Click "Start Tour" to begin</div>
-                    </div>
-                </div>
-                <div class="telemetry-panel resp-telemetry">
-                    <div class="data-stream">
-                        <h2 id="respTitle">Guided Tour Ready</h2>
-                        <p id="respDesc">Click "Start Tour" to move through the trachea, bronchi, bronchioles, and alveoli.</p>
-                    </div>
-                    <div class="system-controls">
-                        <button class="btn-prev" id="respPrev" disabled>Back</button>
-                        <button class="btn-next" id="respNext">Start Tour</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="scan-header">
-            <h2>Real World Scans</h2>
-            <p>Drag and drop your own 3D scans anywhere on the screen to view them.</p>
-        </div>
-
-        <div class="empty-state" id="empty-state">
-            Awaiting .GLB file upload...
-        </div>
-
-        <div class="carousel-container" id="carousel-container">
-            <div class="carousel-track" id="carousel-track"></div>
-        </div>
-    </div>
-
-    <script>
-        // ==========================================
-        // DRAG & DROP LOGIC
-        // ==========================================
-        const globalDropZone = document.getElementById('global-drop-zone');
-        const emptyState = document.getElementById('empty-state');
-        const carouselContainer = document.getElementById('carousel-container');
-        const carouselTrack = document.getElementById('carousel-track');
-        let scanCount = 1;
-        let dragCounter = 0;
-
-        window.addEventListener('dragenter', (e) => {
-            e.preventDefault();
-            dragCounter++;
-            globalDropZone.classList.add('active');
-        });
-
-        window.addEventListener('dragleave', (e) => {
-            e.preventDefault();
-            dragCounter--;
-            if (dragCounter === 0) globalDropZone.classList.remove('active');
-        });
-
-        window.addEventListener('dragover', (e) => {
-            e.preventDefault();
-        });
-
-        window.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dragCounter = 0;
-            globalDropZone.classList.remove('active');
-            const files = e.dataTransfer.files;
-            let loaded = false;
-            for (let i = 0; i < files.length; i++) {
-                const file = files[i];
-                if (file.name.endsWith('.glb') || file.name.endsWith('.gltf')) {
-                    loaded = true;
-                    const objectURL = URL.createObjectURL(file);
-                    const card = document.createElement('div');
-                    card.className = 'scan-card';
-                    const viewer = document.createElement('model-viewer');
-                    viewer.src = objectURL;
-                    viewer.setAttribute('camera-controls', '');
-                    viewer.setAttribute('auto-rotate', '');
-                    viewer.setAttribute('shadow-intensity', '2');
-                    viewer.setAttribute('environment-image', 'neutral');
-                    const label = document.createElement('div');
-                    label.className = 'scan-label';
-                    label.innerText = 'Custom Scan 0' + scanCount++;
-                    card.appendChild(viewer);
-                    card.appendChild(label);
-                    carouselTrack.appendChild(card);
-                }
-            }
-            if (loaded) {
-                emptyState.style.display = 'none';
-                carouselContainer.style.display = 'block';
-                setTimeout(() => {
-                    carouselTrack.scrollLeft = carouselTrack.scrollWidth;
-                }, 100);
-            } else {
-                alert('Please drop a valid .GLB 3D model.');
-            }
-        });
-
-        // ==========================================
-        // FIRST SKETCHFAB LOGIC
-        // ==========================================
-        var iframe = document.getElementById('api-frame');
-        var client = new Sketchfab('1.12.1', iframe);
-        var apiRef = null;
-        var annotationsData = [];
-        var currentIndex = -1;
-        var tourStarted = false;
-
-        function getExplanation(name) {
-            let n = name.toLowerCase();
-            if (n.includes('nasal')) return 'The main entry point for the air we breathe. It warms, moisturizes, and filters out dust before the air travels deeper into the body.';
-            if (n.includes('pharynx')) return 'Commonly known as the throat. It acts as a shared pathway, directing air toward the lungs and food toward the stomach.';
-            if (n.includes('larynx')) return 'The voice box. It holds our vocal cords and features a special flap that prevents food from entering the airway.';
-            if (n.includes('trachea')) return 'The windpipe. It is reinforced with cartilage rings to keep the main airway open.';
-            if (n.includes('bronch')) return 'The main tubes that branch off from the windpipe, delivering oxygen-rich air directly into the left and right lungs.';
-            if (n.includes('lung') || n.includes('alveoli')) return 'The primary organs of breathing. Inside, millions of tiny air sacs exchange vital gases, absorbing fresh oxygen into the blood and removing carbon dioxide.';
-            if (n.includes('diaphragm')) return 'A powerful muscle just below the lungs. When it flexes, it creates a vacuum that pulls air into the chest.';
-            return 'A vital component of human anatomy.';
-        }
-
-        client.init('250911151757489da1cf5501b791f363', {
-            success: function onSuccess(api) {
-                apiRef = api;
-                api.start();
-                api.addEventListener('viewerready', function() {
-                    api.getAnnotationList(function(err, annotations) {
-                        if (!err) annotationsData = annotations || [];
-                        updateUI();
-                    });
-                });
-            },
-            error: function onError() {
-                console.log('Viewer Error');
-            },
-            autostart: 1,
-            ui_infos: 0,
-            ui_controls: 0,
-            ui_stop: 0,
-            ui_watermark: 0,
-            ui_hint: 0,
-            ui_annotations: 0
-        });
-
-        function updateUI() {
-            const titleEl = document.getElementById('organTitle');
-            const descEl = document.getElementById('organDesc');
-            const prevEl = document.getElementById('btnPrev');
-            const nextEl = document.getElementById('btnNext');
-
-            if (!annotationsData.length || currentIndex < 0 || currentIndex >= annotationsData.length) {
-                titleEl.innerText = 'Guided Tour Ready';
-                descEl.innerText = 'Click "Start Tour" to begin exploring the anatomy of the lungs.';
-                prevEl.disabled = true;
-                nextEl.innerText = 'Start Tour';
-                nextEl.disabled = false;
-                return;
-            }
-
-            const current = annotationsData[currentIndex];
-            titleEl.innerText = current.name;
-            descEl.innerText = getExplanation(current.name);
-            prevEl.disabled = (currentIndex === 0);
-
-            if (currentIndex === annotationsData.length - 1) {
-                nextEl.innerText = 'Finish Tour';
-                nextEl.disabled = true;
-            } else {
-                nextEl.innerText = 'Next Part';
-                nextEl.disabled = false;
-            }
-        }
-
-        function nextAnnotation() {
-            if (!apiRef || !annotationsData.length) return;
-            if (!tourStarted) {
-                tourStarted = true;
-                currentIndex = 0;
-            } else if (currentIndex < annotationsData.length - 1) {
-                currentIndex++;
-            } else {
-                currentIndex = 0;
-            }
-            apiRef.gotoAnnotation(currentIndex, { preventCameraAnimation: false });
-            updateUI();
-        }
-
-        function prevAnnotation() {
-            if (!apiRef || !annotationsData.length) return;
-            if (currentIndex > 0) {
-                currentIndex--;
-                apiRef.gotoAnnotation(currentIndex, { preventCameraAnimation: false });
-                updateUI();
-            }
-        }
-
-        // ==========================================
-        // THREE.JS RESPIRATORY CUTAWAY (Advanced, Bug-Free)
-        // Step-based tour with smooth transitions, mouse controls, optimized rendering
-        // ==========================================
-        (function () {
-            const canvas = document.getElementById('respCanvas');
-            if (!canvas || !window.THREE) return;
-
-            const titleEl = document.getElementById('respTitle');
-            const descEl = document.getElementById('respDesc');
-            const badgeEl = document.getElementById('respBadge');
-            const prevBtn = document.getElementById('respPrev');
-            const nextBtn = document.getElementById('respNext');
-
-            let animationId = null;
-            let isDestroyed = false;
-
-            const scene = new THREE.Scene();
-            scene.fog = new THREE.Fog(0x050508, 10, 36);
-
-            const renderer = new THREE.WebGLRenderer({ 
-                canvas, 
-                antialias: true, 
-                alpha: true,
-                powerPreference: 'high-performance',
-                precision: 'highp'
-            });
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-            renderer.setSize(canvas.parentElement.clientWidth, canvas.parentElement.clientHeight, false);
-            renderer.outputColorSpace = THREE.SRGBColorSpace;
-            renderer.toneMapping = THREE.ACESFilmicToneMapping;
-            renderer.toneMappingExposure = 1.4;
-            renderer.setClearColor(0x000000, 1);
-            renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-            renderer.physicallyCorrectLights = true;
-
-            // Post-processing composer (bloom + depth-of-field)
-            let composer;
-            try {
-                composer = new THREE.EffectComposer(renderer);
-                const renderPass = new THREE.RenderPass(scene, camera);
-                composer.addPass(renderPass);
-
-                const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(canvas.parentElement.clientWidth, canvas.parentElement.clientHeight), 0.9, 0.4, 0.85);
-                bloomPass.threshold = 0.12;
-                bloomPass.strength = 0.9;
-                bloomPass.radius = 0.6;
-                composer.addPass(bloomPass);
-
-                const bokehParams = { focus: 1.0, aperture: 0.00045, maxblur: 0.006 };
-                const bokehPass = new THREE.BokehPass(scene, camera, bokehParams);
-                bokehPass.renderToScreen = true;
-                composer.addPass(bokehPass);
-            } catch (e) {
-                console.warn('Post-processing not available:', e);
-                composer = null;
-            }
-
-            const camera = new THREE.PerspectiveCamera(38, canvas.parentElement.clientWidth / canvas.parentElement.clientHeight, 0.1, 100);
-            camera.position.set(0, 0.9, 14);
-
-            const root = new THREE.Group();
-            root.rotation.x = -0.12;
-            root.rotation.y = 0.05;
-            scene.add(root);
-
-            const shellGroup = new THREE.Group();
-            const airwayGroup = new THREE.Group();
-            const alveoliGroup = new THREE.Group();
-            const particleGroup = new THREE.Group();
-            const capillaryGroup = new THREE.Group();
-            const glowGroup = new THREE.Group();
-            const capillaryFlows = []; // animated blood flow tracks
-            root.add(shellGroup, airwayGroup, alveoliGroup, particleGroup, capillaryGroup, glowGroup);
-
-            // Disable frustum culling to prevent parts from disappearing when out of direct view
-            [shellGroup, airwayGroup, alveoliGroup, particleGroup, capillaryGroup, glowGroup].forEach(g => g.frustumCulled = false);
-
-            // Procedural texture generator for alveoli (no external assets)
-            function createProceduralAlveoliTexture(size = 256) {
-                const canvas = document.createElement('canvas');
-                canvas.width = size;
-                canvas.height = size;
-                const ctx = canvas.getContext('2d');
-
-                // base radial gradient
-                const g = ctx.createRadialGradient(size * 0.35, size * 0.35, size * 0.05, size * 0.5, size * 0.5, size * 0.9);
-                g.addColorStop(0, '#ffffff');
-                g.addColorStop(0.6, '#f2fbff');
-                g.addColorStop(1, '#e6f7ff');
-                ctx.fillStyle = g;
-                ctx.fillRect(0, 0, size, size);
-
-                // organic blotches
-                for (let i = 0; i < 40; i++) {
-                    const rx = Math.random() * size;
-                    const ry = Math.random() * size;
-                    const r = (Math.random() * 20) + 6;
-                    ctx.beginPath();
-                    ctx.fillStyle = `rgba(240,248,255,${0.06 + Math.random() * 0.12})`;
-                    ctx.arc(rx, ry, r, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-
-                // subtle noise overlay
-                const imgData = ctx.getImageData(0, 0, size, size);
-                for (let i = 0; i < imgData.data.length; i += 4) {
-                    const v = (Math.random() - 0.5) * 8;
-                    imgData.data[i] = Math.min(255, Math.max(0, imgData.data[i] + v));
-                    imgData.data[i + 1] = Math.min(255, Math.max(0, imgData.data[i + 1] + v));
-                    imgData.data[i + 2] = Math.min(255, Math.max(0, imgData.data[i + 2] + v));
-                }
-                ctx.putImageData(imgData, 0, 0);
-
-                const tex = new THREE.CanvasTexture(canvas);
-                tex.encoding = THREE.sRGBEncoding;
-                tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-                return tex;
-            }
-
-            // Enhanced lighting setup (1.3 billion dollar production)
-            const ambient = new THREE.AmbientLight(0xffffff, 0.95);
-            scene.add(ambient);
-
-            const topLight = new THREE.DirectionalLight(0xffffff, 2.4);
-            topLight.position.set(6, 12, 14);
-            topLight.castShadow = true;
-            topLight.shadow.mapSize.width = 4096;
-            topLight.shadow.mapSize.height = 4096;
-            topLight.shadow.camera.near = 0.1;
-            topLight.shadow.camera.far = 100;
-            scene.add(topLight);
-
-            // Primary rim lights for depth
-            const rimA = new THREE.PointLight(0x00d2ff, 3.0, 50);
-            rimA.position.set(-8, 4, 12);
-            scene.add(rimA);
-
-            const rimB = new THREE.PointLight(0xff5bd1, 1.5, 35);
-            rimB.position.set(8, -3, 10);
-            scene.add(rimB);
-
-            // Pulse/breathing light
-            const pulseLight = new THREE.PointLight(0x9ef3ff, 1.8, 35);
-            pulseLight.position.set(0, -2, 8);
-            scene.add(pulseLight);
-
-            // Depth enhancement lights
-            const depthLight = new THREE.PointLight(0x0066ff, 0.9, 40);
-            depthLight.position.set(-10, 2, -10);
-            scene.add(depthLight);
-
-            const depthLight2 = new THREE.PointLight(0x00ffd2, 0.7, 35);
-            depthLight2.position.set(10, 0, -8);
-            scene.add(depthLight2);
-
-            // Back light for silhouette separation
-            const backLight = new THREE.DirectionalLight(0x1a4d5c, 1.2);
-            backLight.position.set(0, 8, -15);
-            scene.add(backLight);
-
-            // Premium materials with advanced properties
-            const baseMaterials = {
-                shell: { color: 0x1f2a3a, emissive: 0x0d1620, opacity: 0.82, roughness: 0.88, metalness: 0.02 },
-                ribs: { color: 0x3a4d5a, emissive: 0x1a2a36, opacity: 0.28, roughness: 0.7, metalness: 0.01 },
-                trachea: { color: 0x4dd9ff, emissive: 0x0055aa, opacity: 0.94, roughness: 0.18, metalness: 0.08 },
-                bronchi: { color: 0x7dd9ff, emissive: 0x004488, opacity: 0.92, roughness: 0.2, metalness: 0.06 },
-                bronchioles: { color: 0xaae6ff, emissive: 0x003366, opacity: 0.85, roughness: 0.24, metalness: 0.04 },
-                alveoli: { color: 0xf0f8ff, emissive: 0x1a5a7a, opacity: 0.92, roughness: 0.15, metalness: 0.02 }
-            };
-
-            function createMaterial(config) {
-                return new THREE.MeshStandardMaterial({ 
-                    ...config,
-                    transparent: true,
-                    side: THREE.DoubleSide,
-                    emissiveIntensity: 0.55,
-                    envMapIntensity: 1.2,
-                    wireframe: false
-                });
-            }
-
-            // Pre-create material templates (reused via cloning)
-            const materials = {
-                shell: createMaterial(baseMaterials.shell),
-                ribs: createMaterial(baseMaterials.ribs),
-                trachea: createMaterial(baseMaterials.trachea),
-                bronchi: createMaterial(baseMaterials.bronchi),
-                bronchioles: createMaterial(baseMaterials.bronchioles),
-                alveoli: createMaterial(baseMaterials.alveoli)
-            };
-
-            function makeTube(points, radius, radialSegments, material) {
-                const curve = new THREE.CatmullRomCurve3(points);
-                const geom = new THREE.TubeGeometry(curve, 80, radius, radialSegments, false);
-                geom.computeBoundingSphere();
-                return new THREE.Mesh(geom, material);
-            }
-
-            function createBranch(points, radius, material, layer, parent) {
-                const mesh = makeTube(points, radius, 14, material.clone());
-                mesh.userData.layer = layer;
-                mesh.castShadow = true;
-                mesh.receiveShadow = true;
-                parent.add(mesh);
-                return mesh;
-            }
-
-            function createAlveoliCluster(center, radius, count, parent) {
-                const group = new THREE.Group();
-                const sphereGeo = new THREE.SphereGeometry(0.12, 32, 24);
-
-                // procedural alveoli texture (canvas-based)
-                const procTex = createProceduralAlveoliTexture(256);
-
-                for (let i = 0; i < count; i++) {
-                    const phi = (i / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.12;
-                    const theta = (i * 2.399963 + Math.random() * 0.5) % Math.PI;
-                    const rr = radius * (0.55 + (i % 4) * 0.08) * (0.88 + Math.random() * 0.24);
-                    const s = 0.12 + (i % 5) * 0.014 + (Math.random() - 0.5) * 0.01;
-                    const x = center.x + Math.cos(phi) * rr * 0.78 + Math.sin(i * 9.2) * 0.03;
-                    const y = center.y + Math.sin(theta) * rr * 0.52 + Math.cos(i * 6.4) * 0.03;
-                    const z = center.z + Math.sin(phi * 1.7) * rr * 0.46 + Math.sin(i * 5.1) * 0.03;
-
-                    // alveolus (high-res, PBR-like)
-                    const alveMat = new THREE.MeshPhysicalMaterial(Object.assign({}, materials.alveoli.parameters || {}, {
-                        color: 0xf8fbff,
-                        emissive: 0x0c2a36,
-                        roughness: 0.18,
-                        metalness: 0.02,
-                        clearcoat: 0.12,
-                        clearcoatRoughness: 0.25,
-                        map: procTex,
-                        bumpMap: procTex,
-                        bumpScale: 0.035,
-                        side: THREE.DoubleSide
-                    }));
-
-                    const sphere = new THREE.Mesh(sphereGeo, alveMat);
-                    sphere.position.set(x, y, z);
-                    sphere.scale.setScalar(s * 1.35);
-                    sphere.userData.layer = 'alveoli';
-                    sphere.castShadow = true;
-                    sphere.receiveShadow = true;
-                    sphere.frustumCulled = false;
-                    group.add(sphere);
-
-                    // create a small capillary tube and animated blood particles
-                    const capStart = new THREE.Vector3(x, y, z);
-                    const capEnd = capStart.clone().add(new THREE.Vector3((Math.random() - 0.5) * 0.18, -0.06 - Math.random() * 0.05, (Math.random() - 0.5) * 0.18));
-                    const mid = capStart.clone().lerp(capEnd, 0.5).add(new THREE.Vector3(0, -0.03 - Math.random() * 0.02, 0));
-                    const curve = new THREE.CatmullRomCurve3([capStart, mid, capEnd]);
-
-                    const tubeGeom = new THREE.TubeGeometry(curve, 28, 0.012, 8, false);
-                    const tubeMat = new THREE.MeshPhysicalMaterial({ color: 0x5a0000, emissive: 0x220000, roughness: 0.6, metalness: 0.05 });
-                    const tube = new THREE.Mesh(tubeGeom, tubeMat);
-                    tube.frustumCulled = false;
-                    capillaryGroup.add(tube);
-
-                    // animated blood dots
-                    const bloodDots = [];
-                    const dotGeo = new THREE.SphereGeometry(0.025, 8, 6);
-                    const dotMat = new THREE.MeshStandardMaterial({ color: 0xff3030, emissive: 0x440000, roughness: 0.45 });
-                    const dotCount = 2 + Math.floor(Math.random() * 3);
-                    for (let d = 0; d < dotCount; d++) {
-                        const m = new THREE.Mesh(dotGeo, dotMat.clone());
-                        m.frustumCulled = false;
-                        m.scale.setScalar(0.85 + Math.random() * 0.25);
-                        capillaryGroup.add(m);
-                        bloodDots.push({ mesh: m, t: Math.random(), speed: 0.06 + Math.random() * 0.08 });
-                    }
-
-                    capillaryFlows.push({ curve, particles: bloodDots });
-
-                    // soft glow sprite at alveolus center (kept but smaller)
-                    const spriteMat = new THREE.SpriteMaterial({ color: 0x9fefff, opacity: 0.65, transparent: true, blending: THREE.AdditiveBlending });
-                    const sprite = new THREE.Sprite(spriteMat);
-                    sprite.scale.set(s * 0.6, s * 0.6, 1);
-                    sprite.position.set(x, y, z);
-                    sprite.frustumCulled = false;
-                    glowGroup.add(sprite);
-                }
-
-                parent.add(group);
-                return group;
-            }
-
-            // Shell and ribs
-            const shell = new THREE.Mesh(new THREE.SphereGeometry(4.15, 40, 28), materials.shell.clone());
-            shell.scale.set(1.06, 1.36, 0.78);
-            shell.position.set(0, 0.35, 0.2);
-            shell.userData.layer = 'shell';
-            shellGroup.add(shell);
-
-            const ribs = new THREE.Group();
-            for (let i = 0; i < 9; i++) {
-                const ring = new THREE.Mesh(new THREE.TorusGeometry(2.32 - i * 0.11, 0.045, 8, 96), materials.ribs.clone());
-                ring.position.y = 1.75 - i * 0.42;
-                ring.rotation.x = Math.PI / 2;
-                ring.userData.layer = 'shell';
-                ribs.add(ring);
-            }
-            shellGroup.add(ribs);
-
-            // Airway tree
-            const trachea = createBranch([
-                new THREE.Vector3(0, 3.2, 0),
-                new THREE.Vector3(0.02, 2.55, 0),
-                new THREE.Vector3(0, 1.95, 0)
-            ], 0.17, materials.trachea, 'trachea', airwayGroup);
-
-            const bronchiL = createBranch([
-                new THREE.Vector3(0, 1.95, 0),
-                new THREE.Vector3(-0.48, 1.52, 0.12),
-                new THREE.Vector3(-1.05, 1.08, 0.22),
-                new THREE.Vector3(-1.62, 0.62, 0.3),
-                new THREE.Vector3(-2.15, 0.15, 0.36)
-            ], 0.12, materials.bronchi, 'bronchi', airwayGroup);
-
-            const bronchiR = createBranch([
-                new THREE.Vector3(0, 1.95, 0),
-                new THREE.Vector3(0.48, 1.52, -0.1),
-                new THREE.Vector3(1.05, 1.08, -0.22),
-                new THREE.Vector3(1.62, 0.62, -0.3),
-                new THREE.Vector3(2.15, 0.15, -0.36)
-            ], 0.12, materials.bronchi, 'bronchi', airwayGroup);
-
-            const bronchioleL1 = createBranch([
-                new THREE.Vector3(-2.15, 0.15, 0.36),
-                new THREE.Vector3(-2.5, -0.1, 0.28),
-                new THREE.Vector3(-2.9, -0.34, 0.18),
-                new THREE.Vector3(-3.28, -0.62, 0.08)
-            ], 0.072, materials.bronchioles, 'bronchioles', airwayGroup);
-
-            const bronchioleL2 = createBranch([
-                new THREE.Vector3(-2.15, 0.15, 0.36),
-                new THREE.Vector3(-2.4, -0.22, 0.12),
-                new THREE.Vector3(-2.78, -0.56, -0.04),
-                new THREE.Vector3(-3.08, -0.92, -0.18)
-            ], 0.066, materials.bronchioles, 'bronchioles', airwayGroup);
-
-            const bronchioleR1 = createBranch([
-                new THREE.Vector3(2.15, 0.15, -0.36),
-                new THREE.Vector3(2.5, -0.1, -0.28),
-                new THREE.Vector3(2.9, -0.34, -0.18),
-                new THREE.Vector3(3.28, -0.62, -0.08)
-            ], 0.072, materials.bronchioles, 'bronchioles', airwayGroup);
-
-            const bronchioleR2 = createBranch([
-                new THREE.Vector3(2.15, 0.15, -0.36),
-                new THREE.Vector3(2.4, -0.22, -0.12),
-                new THREE.Vector3(2.78, -0.56, 0.04),
-                new THREE.Vector3(3.08, -0.92, 0.18)
-            ], 0.066, materials.bronchioles, 'bronchioles', airwayGroup);
-
-            const bronchioleL3 = createBranch([
-                new THREE.Vector3(-3.28, -0.62, 0.08),
-                new THREE.Vector3(-3.52, -0.9, 0.14),
-                new THREE.Vector3(-3.72, -1.15, 0.2)
-            ], 0.048, materials.bronchioles, 'bronchioles', airwayGroup);
-            const bronchioleL4 = createBranch([
-                new THREE.Vector3(-3.08, -0.92, -0.18),
-                new THREE.Vector3(-3.28, -1.15, -0.22),
-                new THREE.Vector3(-3.48, -1.35, -0.28)
-            ], 0.046, materials.bronchioles, 'bronchioles', airwayGroup);
-            const bronchioleR3 = createBranch([
-                new THREE.Vector3(3.28, -0.62, -0.08),
-                new THREE.Vector3(3.52, -0.9, -0.14),
-                new THREE.Vector3(3.72, -1.15, -0.2)
-            ], 0.048, materials.bronchioles, 'bronchioles', airwayGroup);
-            const bronchioleR4 = createBranch([
-                new THREE.Vector3(3.08, -0.92, 0.18),
-                new THREE.Vector3(3.28, -1.15, 0.22),
-                new THREE.Vector3(3.48, -1.35, 0.28)
-            ], 0.046, materials.bronchioles, 'bronchioles', airwayGroup);
-
-            // Alveolar clusters
-            createAlveoliCluster(new THREE.Vector3(-3.75, -1.18, 0.22), 0.72, 24, alveoliGroup);
-            createAlveoliCluster(new THREE.Vector3(-3.34, -1.42, -0.18), 0.68, 22, alveoliGroup);
-            createAlveoliCluster(new THREE.Vector3(3.75, -1.18, -0.1), 0.72, 24, alveoliGroup);
-            createAlveoliCluster(new THREE.Vector3(3.34, -1.42, 0.16), 0.68, 22, alveoliGroup);
-
-            // Advanced particle flow system with Gaussian distribution
-            const particleGeo = new THREE.BufferGeometry();
-            const particleCount = 420;
-            const particlePositions = new Float32Array(particleCount * 3);
-            const particlePhases = new Float32Array(particleCount);
-            const particleVelocities = new Float32Array(particleCount * 3);
-            const particleAmplitudes = new Float32Array(particleCount);
-            
-            // Initialize particles with proper distribution
-            for (let i = 0; i < particleCount; i++) {
-                const t = i / particleCount;
-                const startY = 2.8 - t * 5.2;
-                
-                // Gaussian distribution for natural-looking spread
-                const u1 = Math.random();
-                const u2 = Math.random();
-                const gaussian = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
-                
-                particlePositions[i * 3 + 0] = gaussian * 4;
-                particlePositions[i * 3 + 1] = startY + (Math.random() - 0.5) * 0.3;
-                particlePositions[i * 3 + 2] = gaussian * 3;
-                particlePhases[i] = Math.random() * Math.PI * 2;
-                particleVelocities[i * 3 + 0] = 0;
-                particleVelocities[i * 3 + 1] = -0.007 - Math.random() * 0.003;
-                particleVelocities[i * 3 + 2] = 0;
-                particleAmplitudes[i] = 0.5 + Math.random() * 0.5;
-            }
-            
-            particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
-            particleGeo.setAttribute('phase', new THREE.BufferAttribute(particlePhases, 1));
-            
-            const particleMat = new THREE.PointsMaterial({ 
-                color: 0x8ef2ff, 
-                size: 0.055, 
-                transparent: true, 
-                opacity: 0.7,
-                sizeAttenuation: true
-            });
-            const particles = new THREE.Points(particleGeo, particleMat);
-            particleGroup.add(particles);
-            
-            // Advanced particle recycling with turbulence
-            function recycleParticles(time) {
-                if (!particleGroup.visible) return;
-                
-                const posAttr = particles.geometry.attributes.position;
-                const phaseAttr = particles.geometry.attributes.phase;
-                
-                for (let i = 0; i < particleCount; i++) {
-                    const p = i * 3;
-                    const ph = phaseAttr.array[i];
-                    const amp = particleAmplitudes[i];
-                    
-                    // Turbulent flow with multiple frequencies
-                    const waveX = Math.sin(time * 2.8 + ph) * 0.0012 + Math.sin(time * 0.8 + ph * 2) * 0.0004;
-                    const waveZ = Math.cos(time * 2.4 + ph) * 0.0008 + Math.cos(time * 1.2 + ph * 3) * 0.0003;
-                    
-                    posAttr.array[p + 0] += waveX * amp;
-                    posAttr.array[p + 1] += particleVelocities[p + 1];
-                    posAttr.array[p + 2] += waveZ * amp;
-                    
-                    // Constrain to bounds and recycle with variance
-                    if (posAttr.array[p + 1] < -3.8 || Math.abs(posAttr.array[p + 0]) > 8 || Math.abs(posAttr.array[p + 2]) > 6.5) {
-                        const resetT = (i / particleCount) * 0.85 + 0.08;
-                        const u1 = Math.random();
-                        const u2 = Math.random();
-                        const gaussian = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
-                        
-                        posAttr.array[p + 0] = gaussian * 4;
-                        posAttr.array[p + 1] = 2.8 - resetT * 5.2;
-                        posAttr.array[p + 2] = gaussian * 3;
-                    }
-                }
-                posAttr.needsUpdate = true;
-            }
-
-            const stages = [
-                // Additional informative stages (upper airway)
-                {
-                    badge: 'Stage 0',
-                    title: 'Nasal & Oral Entry',
-                    desc: 'Air enters through the nose or mouth, where it is warmed and filtered.',
-                    cam: new THREE.Vector3(0, 2.6, 14.5),
-                    look: new THREE.Vector3(0, 2.3, 0),
-                    focus: 'upper',
-                    subtitle: 'Nasal cavity, oral cavity, pharynx',
-                    duration: 1.4
-                },
-                {
-                    badge: 'Stage 0.5',
-                    title: 'Pharynx & Larynx',
-                    desc: 'The throat and voicebox guide air toward the trachea.',
-                    cam: new THREE.Vector3(0, 2.1, 13.6),
-                    look: new THREE.Vector3(0, 1.9, 0),
-                    focus: 'upper',
-                    subtitle: 'Pharynx, larynx, epiglottis',
-                    duration: 1.4
-                },
-                {
-                    badge: 'Stage 1',
-                    title: 'Exterior cutaway',
-                    desc: 'The chest wall is visible first. It frames the dissection before the airway structures are revealed.',
-                    cam: new THREE.Vector3(0, 1.05, 13.2),
-                    look: new THREE.Vector3(0, 0.6, 0),
-                    focus: 'shell',
-                    duration: 1.8
-                },
-                {
-                    badge: 'Stage 2',
-                    title: 'Trachea exposed',
-                    desc: 'The trachea carries air from the throat into the chest. Its reinforced shape keeps the airway open.',
-                    cam: new THREE.Vector3(0, 1.1, 11.4),
-                    look: new THREE.Vector3(0, 1.8, 0),
-                    focus: 'trachea',
-                    duration: 1.6
-                },
-                {
-                    badge: 'Stage 3',
-                    title: 'Primary bronchi',
-                    desc: 'The trachea splits into the left and right bronchi. These are the first major branches entering each lung.',
-                    cam: new THREE.Vector3(0, 0.75, 10.1),
-                    look: new THREE.Vector3(0, 1.1, 0),
-                    focus: 'bronchi',
-                    duration: 1.6
-                },
-                {
-                    badge: 'Stage 4',
-                    title: 'Bronchioles',
-                    desc: 'Bronchi branch repeatedly into smaller bronchioles. This branching spreads air across the deeper lung tissue.',
-                    cam: new THREE.Vector3(0, 0.35, 8.8),
-                    look: new THREE.Vector3(0, -0.1, 0),
-                    focus: 'bronchioles',
-                    duration: 1.8
-                },
-                {
-                    badge: 'Stage 5',
-                    title: 'Alveolar sacs',
-                    desc: 'Tiny alveoli sit at the ends of the airway tree. This is where oxygen moves into the blood and carbon dioxide moves out.',
-                    cam: new THREE.Vector3(0, 0.05, 7.9),
-                    look: new THREE.Vector3(0, -1.05, 0),
-                    focus: 'alveoli',
-                    duration: 1.8
-                },
-                {
-                    badge: 'Stage 6',
-                    title: 'Full gas exchange path',
-                    desc: 'The full pathway is visible from the trachea to the alveoli, showing how breathing reaches the smallest exchange surfaces.',
-                    cam: new THREE.Vector3(0, 0.55, 9.6),
-                    look: new THREE.Vector3(0, -0.2, 0),
-                    focus: 'all',
-                    duration: 2.0
-                }
-            ];
-
-            // Enhanced state management with smooth transitions
-            const state = {
-                stage: -1,
-                started: false,
-                transitioning: false,
-                transitionProgress: 0,
-                targetCam: stages[0].cam.clone(),
-                targetLook: stages[0].look.clone(),
-                currentCam: stages[0].cam.clone(),
-                currentLook: stages[0].look.clone(),
-                stageOpacities: {} // For smooth fade transitions
-            };
-            
-            // Initialize stage opacities
-            stages.forEach((s, i) => {
-                state.stageOpacities[i] = 0;
-            });
-
-            // Multiple easing functions for professional animation
-            function easeInOutCubic(t) {
-                return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-            }
-            
-            function easeInOutQuint(t) {
-                return t < 0.5 ? 16 * t * t * t * t * t : 1 - Math.pow(-2 * t + 2, 5) / 2;
-            }
-            
-            function easeOutElastic(t) {
-                const c5 = (2 * Math.PI) / 4.5;
-                return t === 0 ? 0 : t === 1 ? 1 : Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * c5) + 1;
-            }
-
-            function setLayerVisibility(stageName) {
-                // Map semantic stage names to visibility
-                // stageName may be: 'upper', 'shell', 'trachea', 'bronchi', 'bronchioles', 'alveoli', 'all'
-                const showShell = (stageName === 'shell');
-                const showUpper = (stageName === 'upper');
-                const showTrachea = (['trachea','bronchi','bronchioles','alveoli','all','upper'].includes(stageName));
-                const showBronchi = (['bronchi','bronchioles','alveoli','all'].includes(stageName));
-                const showBronchioles = (['bronchioles','alveoli','all'].includes(stageName));
-                const showAlveoli = (['alveoli','all'].includes(stageName));
-                const showParticles = (stageName !== 'shell');
-
-                shellGroup.visible = showShell;
-                // Airways show when any airway-related stage is active
-                airwayGroup.visible = showTrachea || showBronchi || showBronchioles;
-                alveoliGroup.visible = showAlveoli;
-                particleGroup.visible = showParticles;
-                capillaryGroup.visible = showAlveoli;
-                glowGroup.visible = showAlveoli;
-            }
-
-            function setStage(index) {
-                if (state.transitioning || state.stage === index) return;
-                
-                state.stage = Math.max(0, Math.min(index, stages.length - 1));
-                state.started = true;
-                state.transitioning = true;
-                state.transitionProgress = 0;
-                
-                const s = stages[state.stage];
-                badgeEl.textContent = s.badge;
-                titleEl.textContent = s.title;
-                descEl.textContent = s.desc;
-                // update overlay label and hint
-                const respLabel = document.getElementById('respLabel');
-                const respHint = document.getElementById('respHint');
-                if (respLabel) respLabel.innerText = s.subtitle || s.title;
-                if (respHint) respHint.innerText = s.desc;
-                state.targetCam.copy(s.cam);
-                state.targetLook.copy(s.look);
-                setLayerVisibility(s.focus);
-                
-                prevBtn.disabled = (state.stage === 0);
-                nextBtn.disabled = (state.stage === stages.length - 1);
-                nextBtn.textContent = (state.stage === stages.length - 1) ? 'Finish Tour' : 'Next Part';
-            }
-
-            function startTour() {
-                if (!state.started) {
-                    setStage(0);
-                    return;
-                }
-                if (state.stage < stages.length - 1) {
-                    setStage(state.stage + 1);
-                }
-            }
-
-            function prevStep() {
-                if (!state.started) return;
-                if (state.stage > 0) setStage(state.stage - 1);
-            }
-
-            prevBtn.addEventListener('click', prevStep);
-            nextBtn.addEventListener('click', startTour);
-
-            // Initialize to ready state
-            setLayerVisibility('shell');
-            shellGroup.visible = true;
-            airwayGroup.visible = false;
-            alveoliGroup.visible = false;
-            particleGroup.visible = false;
-            titleEl.textContent = 'Guided Tour Ready';
-            descEl.textContent = 'Click "Start Tour" to move through the trachea, bronchi, bronchioles, and alveoli.';
-            badgeEl.textContent = 'Stage 1';
-
-            // Resize handler with proper cleanup
-            function resize() {
-                if (isDestroyed) return;
-                const w = canvas.parentElement.clientWidth;
-                const h = canvas.parentElement.clientHeight;
-                renderer.setSize(w, h, false);
-                camera.aspect = w / h;
-                camera.updateProjectionMatrix();
-            }
-
-            const resizeObserver = new ResizeObserver(resize);
-            resizeObserver.observe(canvas.parentElement);
-            resize();
-
-            // Time tracking
-            let t = 0;
-            const clock = new THREE.Clock();
-            
-            // Animation loop with advanced effects and professional quality
-            function animate() {
-                if (isDestroyed) {
-                    resizeObserver.disconnect();
-                    return;
-                }
-                
-                animationId = requestAnimationFrame(animate);
-                
-                try {
-                    const deltaTime = clock.getDelta();
-                    t += 0.016; // Target 60fps
-
-                    // Smooth camera transition using advanced easing
-                    if (state.transitioning && state.transitionProgress < 1) {
-                        state.transitionProgress += deltaTime / 1.8; // 1.8 second transitions
-                        state.transitionProgress = Math.min(state.transitionProgress, 1);
-                        const ease = easeInOutQuint(state.transitionProgress);
-                        
-                        state.currentCam.lerpVectors(state.currentCam, state.targetCam, ease * 0.12);
-                        state.currentLook.lerpVectors(state.currentLook, state.targetLook, ease * 0.12);
-                        
-                        if (state.transitionProgress >= 1) {
-                            state.transitioning = false;
-                            state.currentCam.copy(state.targetCam);
-                            state.currentLook.copy(state.targetLook);
-                        }
-                    } else if (!state.transitioning) {
-                        state.currentCam.lerp(state.targetCam, 0.035);
-                        state.currentLook.lerp(state.targetLook, 0.035);
-                    }
-
-                    camera.position.copy(state.currentCam);
-                    camera.lookAt(state.currentLook);
-
-                    // Sophisticated continuous rotation with complex breathing pattern
-                    root.rotation.y += 0.00145 + Math.sin(t * 0.3) * 0.0008;
-                    root.rotation.x = -0.12 + Math.sin(t * 0.5) * 0.022 + Math.sin(t * 1.8) * 0.008;
-
-                    // Update particles with physics
-                    recycleParticles(t);
-
-                    // Realistic breathing animation with multiple harmonics
-                    const breath = 1 + Math.sin(t * 1.6) * 0.026 + Math.sin(t * 0.8) * 0.008;
-                    const airwayBreathe = 1 + Math.sin(t * 1.6 + 0.5) * 0.015 + Math.sin(t * 3.2) * 0.004;
-                    const alveoliBreathe = 1 + Math.sin(t * 1.6 + 1.2) * 0.032 + Math.sin(t * 4.8) * 0.006;
-                    
-                    shellGroup.scale.setScalar(breath);
-                    airwayGroup.scale.setScalar(airwayBreathe);
-                    alveoliGroup.scale.setScalar(alveoliBreathe);
-
-                    // Advanced pulsing lights synchronized with breathing
-                    const lightPulse = 0.6 + Math.sin(t * 2.8) * 0.4 + Math.sin(t * 1.4) * 0.15;
-                    const rimPulse = 0.8 + Math.sin(t * 1.2) * 0.35;
-                    
-                    pulseLight.intensity = 1.3 + lightPulse * 0.35;
-                    rimA.intensity = 2.8 + Math.sin(t * 1.2) * 0.4 + Math.sin(t * 2.4) * 0.15;
-                    rimB.intensity = 1.4 + Math.cos(t * 1.5) * 0.3;
-                    depthLight.intensity = 0.7 + Math.sin(t * 0.6) * 0.25;
-                    depthLight2.intensity = 0.5 + Math.sin(t * 0.9) * 0.2;
-                    backLight.intensity = 0.8 + Math.sin(t * 1.3) * 0.4;
-
-                    // Dynamic emissive color pulsing for depth
-                    const emissivePulse = 0.4 + Math.sin(t * 2.2) * 0.25 + Math.sin(t * 4.4) * 0.1;
-                    Object.values(materials).forEach(mat => {
-                        if (mat.emissiveIntensity !== undefined) {
-                            mat.emissiveIntensity = 0.45 + emissivePulse * 0.2;
-                        }
-                    });
-
-                    // Apply gamma correction for cinema-like appearance
-                    const gamma = 2.2;
-                    renderer.toneMappingExposure = 1.4 + Math.sin(t * 0.8) * 0.15;
-
-                    renderer.render(scene, camera);
-                } catch (error) {
-                    console.error('Three.js animation error:', error);
-                }
-            }
-
-            animate();
-
-            // Proper cleanup function
-            function destroy() {
-                isDestroyed = true;
-                if (animationId) cancelAnimationFrame(animationId);
-                resizeObserver.disconnect();
-                prevBtn.removeEventListener('click', prevStep);
-                nextBtn.removeEventListener('click', startTour);
-                
-                // Dispose of geometries
-                shellGroup.children.forEach(child => {
-                    if (child.geometry) child.geometry.dispose();
-                });
-                airwayGroup.children.forEach(child => {
-                    if (child.geometry) child.geometry.dispose();
-                });
-                alveoliGroup.children.forEach(child => {
-                    if (child.geometry) child.geometry.dispose();
-                });
-                
-                // Dispose materials
-                Object.values(materials).forEach(mat => mat.dispose());
-                
-                // Dispose renderer
-                renderer.dispose();
-            }
-
-            // Handle window unload
-            window.addEventListener('beforeunload', destroy);
-        })();
-    </script>
+  <div class="ui">
+    <div id="title">Respiratory System</div>
+    <div id="desc">Cinematic simulation ready</div>
+    <button id="btn">Start Cinematic</button>
+  </div>
+
+  <script>
+    let scene, camera, renderer, composer;
+    let root, leftLung, rightLung, leftShell, rightShell, membrane;
+    let tracheaMesh, carinaMesh, branchInstanced, alveoliInstanced, airflowPoints, hazeGroup;
+    let branchMatrices = [], alveoliMatrices = [];
+    let targetOpacity = 1.0, targetTransmission = 0.65;
+    let targetBloom = 0.8;
+    let running = false;
+    let progress = 0;
+    let clock = null;
+
+    const titleEl = document.getElementById("title");
+    const descEl = document.getElementById("desc");
+    const btnEl = document.getElementById("btn");
+
+    const upVec = new THREE.Vector3(0, 1, 0);
+    const dummy = new THREE.Object3D();
+    const targetZoomNode = new THREE.Vector3(0.15, -0.2, 0.8);
+
+    const airCurves = [];
+    const airParticles = [];
+    const airParticleCount = 1600;
+
+    let tissueNoise;
+    let cameraPath;
+    let lookPath;
+
+    function createNoiseTexture(size = 256) {
+      const cvs = document.createElement("canvas");
+      cvs.width = cvs.height = size;
+      const ctx = cvs.getContext("2d");
+      const img = ctx.createImageData(size, size);
+
+      for (let i = 0; i < img.data.length; i += 4) {
+        const v = 118 + Math.random() * 72;
+        img.data[i] = v;
+        img.data[i + 1] = v - 10;
+        img.data[i + 2] = v - 18;
+        img.data[i + 3] = 255;
+      }
+
+      ctx.putImageData(img, 0, 0);
+
+      const tex = new THREE.CanvasTexture(cvs);
+      tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(8, 8);
+      tex.anisotropy = 4;
+      return tex;
+    }
+
+    function deformLungGeometry(isLeft) {
+      const geo = new THREE.SphereGeometry(1.85, 96, 96);
+      const pos = geo.attributes.position;
+      const v = new THREE.Vector3();
+
+      for (let i = 0; i < pos.count; i++) {
+        v.fromBufferAttribute(pos, i);
+        let { x, y, z } = v;
+
+        const taper = Math.max(0, y);
+        x *= 1 - Math.pow(taper, 1.45) * 0.34;
+        z *= 1 - Math.pow(taper, 1.55) * 0.28;
+
+        if (isLeft && x > 0) x *= 0.18;
+        if (!isLeft && x < 0) x *= 0.18;
+
+        if (y < 0) {
+          const d = Math.sqrt(x * x + z * z);
+          y += Math.max(0, 1 - d * 1.35) * 0.42;
+          y += 0.08;
+        }
+
+        if (isLeft && x > -0.55 && y > -0.55 && y < 0.22 && z > 0) {
+          x -= 0.62 * (1 - Math.abs(y)) * Math.max(0, z);
+        }
+
+        x *= 1.55;
+        y *= 2.85;
+        z *= 1.75;
+
+        const n1 = Math.sin(x * 5.3) * Math.cos(y * 4.2) * Math.sin(z * 5.1) * 0.022;
+        const n2 = Math.sin((x + y + z) * 2.8) * 0.012;
+        const noise = n1 + n2;
+
+        x += noise;
+        y += noise;
+        z += noise;
+
+        pos.setXYZ(i, x, y, z);
+      }
+
+      geo.computeVertexNormals();
+      return geo;
+    }
+
+    function makeLungGroup(isLeft) {
+      const group = new THREE.Group();
+
+      const baseMaterial = new THREE.MeshPhysicalMaterial({
+        color: isLeft ? 0xd95e72 : 0xdf6675,
+        roughness: 0.44,
+        metalness: 0.0,
+        transmission: 0.52,
+        thickness: 1.7,
+        clearcoat: 0.68,
+        clearcoatRoughness: 0.22,
+        ior: 1.38,
+        emissive: 0x140004,
+        emissiveIntensity: 0.28,
+        normalMap: tissueNoise,
+        normalScale: new THREE.Vector2(0.2, 0.2),
+        bumpMap: tissueNoise,
+        bumpScale: 0.03,
+        roughnessMap: tissueNoise,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 1.0
+      });
+
+      const innerMaterial = new THREE.MeshPhysicalMaterial({
+        color: isLeft ? 0xc94d62 : 0xcf5664,
+        roughness: 0.58,
+        transmission: 0.22,
+        thickness: 1.0,
+        clearcoat: 0.2,
+        transparent: true,
+        opacity: 0.62,
+        emissive: 0x100003,
+        emissiveIntensity: 0.12,
+        side: THREE.DoubleSide
+      });
+
+      const lobeTint = new THREE.MeshPhysicalMaterial({
+        color: isLeft ? 0xe17a8a : 0xe27a80,
+        roughness: 0.52,
+        transmission: 0.12,
+        thickness: 0.6,
+        transparent: true,
+        opacity: 0.24,
+        emissive: 0x150005,
+        emissiveIntensity: 0.08,
+        side: THREE.DoubleSide
+      });
+
+      const shell = new THREE.Mesh(deformLungGeometry(isLeft), baseMaterial);
+      shell.castShadow = true;
+      shell.receiveShadow = true;
+      group.add(shell);
+
+      const inner = new THREE.Mesh(deformLungGeometry(isLeft), innerMaterial);
+      inner.scale.setScalar(0.94);
+      inner.position.y = -0.02;
+      group.add(inner);
+
+      const lobeCount = isLeft ? 2 : 3;
+
+      for (let i = 0; i < lobeCount; i++) {
+        const l = new THREE.Mesh(new THREE.SphereGeometry(1.18, 48, 48), lobeTint.clone());
+        l.scale.set(isLeft ? 0.95 : 1.0, i === 0 ? 0.65 : 0.76, 0.78);
+        l.position.set(
+          isLeft ? -0.15 : 0.10,
+          isLeft ? 0.95 - i * 1.22 : 1.15 - i * 0.98,
+          i === 1 ? 0.18 : -0.06
+        );
+        l.rotation.z = isLeft ? -0.12 : 0.1;
+        group.add(l);
+      }
+
+      group.position.x = isLeft ? -2.18 : 2.18;
+      group.position.y = 0.35;
+      group.scale.set(1.02, 1.0, 0.98);
+
+      return { group, shell, inner };
+    }
+
+    function addBranchMatrix(start, end, radius) {
+      const length = start.distanceTo(end);
+      dummy.position.copy(start).lerp(end, 0.5);
+      dummy.quaternion.setFromUnitVectors(upVec, end.clone().sub(start).normalize());
+      dummy.scale.set(radius, length, radius);
+      dummy.updateMatrix();
+      branchMatrices.push(dummy.matrix.clone());
+    }
+
+    function addAlveoliMatrix(pos, radius, spin = true) {
+      dummy.position.copy(pos);
+      dummy.rotation.set(
+        Math.random() * Math.PI,
+        Math.random() * Math.PI,
+        spin ? Math.random() * Math.PI : 0
+      );
+      const s = radius * (1.45 + Math.random() * 0.85);
+      dummy.scale.set(s, s, s);
+      dummy.updateMatrix();
+      alveoliMatrices.push(dummy.matrix.clone());
+    }
+
+    function generateTree(startPt, dir, length, radius, depth, isLeft) {
+      const endPt = startPt.clone().add(dir.clone().multiplyScalar(length));
+      addBranchMatrix(startPt, endPt, radius);
+
+      if (depth >= 7) {
+        for (let i = 0; i < 5; i++) {
+          const offset = new THREE.Vector3(
+            (Math.random() - 0.5) * radius * 4.6,
+            (Math.random() - 0.5) * radius * 4.6,
+            (Math.random() - 0.5) * radius * 4.6
+          );
+          addAlveoliMatrix(endPt.clone().add(offset), radius * 0.95);
+        }
+
+        if (endPt.y < 1.8 && endPt.z > 0.6 && Math.abs(endPt.x) < 3.2) {
+          targetZoomNode.lerp(endPt, 0.55);
+        }
+        return;
+      }
+
+      for (let i = 0; i < 2; i++) {
+        const branchAngle = 0.31 + Math.random() * 0.18;
+
+        let axis = new THREE.Vector3(
+          Math.random() - 0.5,
+          Math.random() - 0.5,
+          Math.random() - 0.5
+        ).normalize();
+
+        axis.x += isLeft ? -0.55 : 0.55;
+        axis.normalize();
+
+        const perp = dir.clone().cross(axis).normalize();
+        const angle = i === 0 ? branchAngle : -branchAngle;
+
+        let newDir = dir.clone().applyAxisAngle(perp, angle).normalize();
+        newDir.applyAxisAngle(dir, (Math.random() - 0.5) * 0.28);
+
+        generateTree(
+          endPt,
+          newDir,
+          length * (0.73 + Math.random() * 0.08),
+          radius * 0.76,
+          depth + 1,
+          isLeft
+        );
+      }
+    }
+
+    function addFlowCurve(points) {
+      const curve = new THREE.CatmullRomCurve3(points, false, "catmullrom", 0.35);
+      airCurves.push(curve);
+      return curve;
+    }
+
+    function makeAirflowSystem() {
+      const geo = new THREE.BufferGeometry();
+      const positions = new Float32Array(airParticleCount * 3);
+      geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+
+      const mat = new THREE.PointsMaterial({
+        color: 0x7df4ff,
+        size: 0.05,
+        transparent: true,
+        opacity: 0.75,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        sizeAttenuation: true
+      });
+
+      airflowPoints = new THREE.Points(geo, mat);
+      airflowPoints.renderOrder = 5;
+      root.add(airflowPoints);
+
+      for (let i = 0; i < airParticleCount; i++) {
+        const curveIndex = Math.floor(Math.random() * airCurves.length);
+        airParticles.push({
+          curveIndex,
+          u: Math.random(),
+          speed: 0.09 + Math.random() * 0.22,
+          drift: 0.008 + Math.random() * 0.018,
+          wobble: Math.random() * Math.PI * 2,
+          wobbleSpeed: 0.7 + Math.random() * 1.5,
+          colorBias: Math.random()
+        });
+      }
+    }
+
+    function makeHaze() {
+      hazeGroup = new THREE.Group();
+
+      const hazeMat = new THREE.MeshBasicMaterial({
+        color: 0x0d2a3a,
+        transparent: true,
+        opacity: 0.045,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide
+      });
+
+      const hazeMat2 = new THREE.MeshBasicMaterial({
+        color: 0x2f6b7f,
+        transparent: true,
+        opacity: 0.028,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide
+      });
+
+      for (let i = 0; i < 3; i++) {
+        const haze = new THREE.Mesh(
+          new THREE.SphereGeometry(10 + i * 3.3, 32, 32),
+          i % 2 ? hazeMat : hazeMat2
+        );
+        haze.position.set((i - 1) * 0.8, 0.6 - i * 0.4, -1.5 + i * 0.5);
+        hazeGroup.add(haze);
+      }
+
+      root.add(hazeGroup);
+    }
+
+    function buildScene() {
+      scene = new THREE.Scene();
+      scene.fog = new THREE.FogExp2(0x020408, 0.028);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(innerWidth, innerHeight);
+      renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.18;
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      document.body.appendChild(renderer.domElement);
+
+      camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 200);
+      camera.position.set(0, 2, 18);
+
+      composer = new THREE.EffectComposer(renderer);
+      composer.addPass(new THREE.RenderPass(scene, camera));
+      composer.addPass(new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.72, 0.92, 0.28));
+
+      scene.add(new THREE.AmbientLight(0x223344, 0.55));
+
+      const rim = new THREE.PointLight(0x00e5ff, 2.2, 60);
+      rim.position.set(-5, 2, -5);
+      scene.add(rim);
+
+      const warm = new THREE.PointLight(0xff5577, 1.85, 60);
+      warm.position.set(5, -3, 5);
+      scene.add(warm);
+
+      const fill = new THREE.PointLight(0xa8f1ff, 0.75, 48);
+      fill.position.set(0, 4, 10);
+      scene.add(fill);
+
+      root = new THREE.Group();
+      scene.add(root);
+
+      const ground = new THREE.Mesh(
+        new THREE.CircleGeometry(13, 72),
+        new THREE.ShadowMaterial({ opacity: 0.17 })
+      );
+      ground.rotation.x = -Math.PI / 2;
+      ground.position.y = -5.25;
+      ground.receiveShadow = true;
+      root.add(ground);
+
+      const bgGlow = new THREE.Mesh(
+        new THREE.SphereGeometry(22, 48, 48),
+        new THREE.MeshBasicMaterial({
+          color: 0x09121f,
+          transparent: true,
+          opacity: 0.16,
+          side: THREE.BackSide
+        })
+      );
+      scene.add(bgGlow);
+
+      tissueNoise = createNoiseTexture();
+
+      const left = makeLungGroup(true);
+      const right = makeLungGroup(false);
+
+      leftLung = left.group;
+      rightLung = right.group;
+      leftShell = left.shell;
+      rightShell = right.shell;
+
+      root.add(leftLung, rightLung);
+
+      membrane = new THREE.Mesh(
+        new THREE.SphereGeometry(5.35, 80, 80),
+        new THREE.MeshPhysicalMaterial({
+          color: 0x9f233f,
+          transmission: 0.16,
+          thickness: 0.9,
+          roughness: 0.2,
+          clearcoat: 0.92,
+          clearcoatRoughness: 0.16,
+          transparent: true,
+          opacity: 0.12,
+          side: THREE.DoubleSide,
+          emissive: 0x1d0006,
+          emissiveIntensity: 0.16,
+          depthWrite: false
+        })
+      );
+      membrane.position.set(0, 0.18, -0.1);
+      root.add(membrane);
+
+      const airwayMat = new THREE.MeshStandardMaterial({
+        color: 0xdbeeff,
+        roughness: 0.38,
+        metalness: 0.0
+      });
+
+      const ringMat = new THREE.MeshStandardMaterial({
+        color: 0xbfd8e8,
+        roughness: 0.32,
+        metalness: 0.0
+      });
+
+      tracheaMesh = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.26, 0.32, 3.8, 14, 1, false),
+        airwayMat
+      );
+      tracheaMesh.position.set(0, 4.55, 0);
+      tracheaMesh.castShadow = true;
+      tracheaMesh.receiveShadow = true;
+      root.add(tracheaMesh);
+
+      for (let i = 0; i < 9; i++) {
+        const ring = new THREE.Mesh(
+          new THREE.TorusGeometry(0.31, 0.055, 8, 24),
+          ringMat
+        );
+        ring.rotation.x = Math.PI / 2;
+        ring.position.set(0, 3.35 + i * 0.35, 0.02);
+        ring.castShadow = true;
+        root.add(ring);
+      }
+
+      carinaMesh = new THREE.Mesh(
+        new THREE.SphereGeometry(0.18, 18, 18),
+        new THREE.MeshPhysicalMaterial({
+          color: 0xc7e3f2,
+          roughness: 0.35,
+          clearcoat: 0.5,
+          transparent: true,
+          opacity: 0.9
+        })
+      );
+      carinaMesh.position.set(0, 2.85, 0.15);
+      root.add(carinaMesh);
+
+      const carina = new THREE.Vector3(0, 2.85, 0.15);
+
+      const leftMain = new THREE.Vector3(-0.95, 2.0, 0.2);
+      const rightMain = new THREE.Vector3(0.95, 1.95, -0.05);
+
+      addBranchMatrix(carina, leftMain, 0.22);
+      addBranchMatrix(carina, rightMain, 0.22);
+
+      const leftUpper = new THREE.Vector3(-1.55, 1.25, 0.25);
+      const leftLower = new THREE.Vector3(-1.35, 0.15, 0.1);
+
+      const rightUpper = new THREE.Vector3(1.55, 1.35, -0.05);
+      const rightMiddle = new THREE.Vector3(1.95, 0.55, 0.0);
+      const rightLower = new THREE.Vector3(1.35, -0.2, -0.05);
+
+      addBranchMatrix(leftMain, leftUpper, 0.16);
+      addBranchMatrix(leftMain, leftLower, 0.16);
+      addBranchMatrix(rightMain, rightUpper, 0.16);
+      addBranchMatrix(rightMain, rightMiddle, 0.15);
+      addBranchMatrix(rightMain, rightLower, 0.15);
+
+      generateTree(leftUpper, new THREE.Vector3(-0.55, -0.82, 0.18).normalize(), 1.05, 0.14, 2, true);
+      generateTree(leftLower, new THREE.Vector3(-0.28, -0.92, 0.08).normalize(), 1.15, 0.13, 2, true);
+
+      generateTree(rightUpper, new THREE.Vector3(0.5, -0.82, -0.12).normalize(), 1.05, 0.14, 2, false);
+      generateTree(rightMiddle, new THREE.Vector3(0.42, -0.88, 0.03).normalize(), 1.0, 0.13, 2, false);
+      generateTree(rightLower, new THREE.Vector3(0.3, -0.94, -0.08).normalize(), 1.1, 0.12, 2, false);
+
+      const branchGeo = new THREE.CylinderGeometry(1, 1, 1, 8, 1, false);
+      branchInstanced = new THREE.InstancedMesh(
+        branchGeo,
+        new THREE.MeshStandardMaterial({
+          color: 0xf0c6c9,
+          roughness: 0.58,
+          metalness: 0.0
+        }),
+        branchMatrices.length
+      );
+      branchInstanced.castShadow = true;
+      branchInstanced.receiveShadow = true;
+      for (let i = 0; i < branchMatrices.length; i++) {
+        branchInstanced.setMatrixAt(i, branchMatrices[i]);
+      }
+      root.add(branchInstanced);
+
+      const alveoliGeo = new THREE.IcosahedronGeometry(1, 2);
+      alveoliInstanced = new THREE.InstancedMesh(
+        alveoliGeo,
+        new THREE.MeshPhysicalMaterial({
+          color: 0xffedf2,
+          roughness: 0.28,
+          clearcoat: 0.34,
+          transmission: 0.15,
+          thickness: 0.85,
+          emissive: 0x24000a,
+          emissiveIntensity: 0.24
+        }),
+        alveoliMatrices.length
+      );
+      alveoliInstanced.castShadow = true;
+      alveoliInstanced.receiveShadow = true;
+      for (let i = 0; i < alveoliMatrices.length; i++) {
+        alveoliInstanced.setMatrixAt(i, alveoliMatrices[i]);
+      }
+      root.add(alveoliInstanced);
+
+      addFlowCurve([
+        new THREE.Vector3(0, 5.1, 0),
+        new THREE.Vector3(0, 4.3, 0),
+        new THREE.Vector3(0, 3.5, 0.02),
+        new THREE.Vector3(0, 2.85, 0.15)
+      ]);
+
+      addFlowCurve([
+        new THREE.Vector3(0, 2.85, 0.15),
+        new THREE.Vector3(-0.55, 2.3, 0.16),
+        new THREE.Vector3(-1.0, 1.95, 0.18),
+        new THREE.Vector3(-1.55, 1.25, 0.25),
+        new THREE.Vector3(-1.35, 0.15, 0.1),
+        new THREE.Vector3(-1.9, -0.8, 0.18)
+      ]);
+
+      addFlowCurve([
+        new THREE.Vector3(0, 2.85, 0.15),
+        new THREE.Vector3(0.6, 2.35, 0.08),
+        new THREE.Vector3(1.0, 1.95, -0.04),
+        new THREE.Vector3(1.55, 1.35, -0.05),
+        new THREE.Vector3(1.95, 0.55, 0.0),
+        new THREE.Vector3(1.35, -0.2, -0.05)
+      ]);
+
+      addFlowCurve([
+        new THREE.Vector3(-1.35, 0.15, 0.1),
+        new THREE.Vector3(-1.75, -0.55, 0.18),
+        new THREE.Vector3(-2.05, -1.2, 0.12)
+      ]);
+
+      addFlowCurve([
+        new THREE.Vector3(1.35, -0.2, -0.05),
+        new THREE.Vector3(1.75, -0.7, 0.0),
+        new THREE.Vector3(2.0, -1.2, -0.1)
+      ]);
+
+      addFlowCurve([
+        new THREE.Vector3(0.25, 1.15, 2.1),
+        new THREE.Vector3(0.15, 0.7, 1.55),
+        new THREE.Vector3(0.0, 0.25, 1.0),
+        new THREE.Vector3(-0.2, -0.15, 0.55),
+        targetZoomNode.clone()
+      ]);
+
+      makeHaze();
+      makeAirflowSystem();
+
+      cameraPath = new THREE.CatmullRomCurve3(
+        [
+          new THREE.Vector3(0, 2.1, 18.5),
+          new THREE.Vector3(4.0, 2.8, 15.0),
+          new THREE.Vector3(2.8, 1.2, 11.0),
+          new THREE.Vector3(0.0, 1.7, 8.5),
+          new THREE.Vector3(-1.2, 1.1, 6.2),
+          new THREE.Vector3(0.2, 0.2, 4.5),
+          new THREE.Vector3(0.0, -0.2, 6.8),
+          new THREE.Vector3(-0.3, 0.8, 10.5)
+        ],
+        false,
+        "catmullrom",
+        0.35
+      );
+
+      lookPath = new THREE.CatmullRomCurve3(
+        [
+          new THREE.Vector3(0, 1.8, 0),
+          new THREE.Vector3(0.2, 1.7, 0),
+          new THREE.Vector3(0.0, 1.1, 0.05),
+          new THREE.Vector3(-0.6, 0.8, 0.1),
+          new THREE.Vector3(0.1, 0.45, 0.15),
+          new THREE.Vector3(-0.15, -0.2, 0.2),
+          targetZoomNode.clone()
+        ],
+        false,
+        "catmullrom",
+        0.4
+      );
+
+      clock = new THREE.Clock();
+
+      titleEl.innerText = "Respiratory System";
+      descEl.innerText = "Cinematic simulation ready";
+      btnEl.innerText = "Start Cinematic";
+      btnEl.onclick = () => {
+        running = true;
+        progress = 0;
+        titleEl.innerText = "Cinematic Flythrough";
+        descEl.innerText = "Volumetric haze, airflow, and airway branching engaged.";
+        btnEl.innerText = "Restart Cinematic";
+      };
+
+      window.addEventListener("resize", onResize);
+      animate();
+    }
+
+    function onResize() {
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+      composer.setSize(innerWidth, innerHeight);
+    }
+
+    function updateAirflow(dt, t) {
+      const arr = airflowPoints.geometry.attributes.position.array;
+
+      for (let i = 0; i < airParticles.length; i++) {
+        const p = airParticles[i];
+        const curve = airCurves[p.curveIndex];
+
+        p.u += dt * p.speed;
+        if (p.u > 1) {
+          p.curveIndex = Math.floor(Math.random() * airCurves.length);
+          p.u = Math.random() * 0.05;
+          p.speed = 0.09 + Math.random() * 0.22;
+          p.drift = 0.008 + Math.random() * 0.018;
+        }
+
+        const point = curve.getPointAt(p.u);
+        const tangent = curve.getTangentAt(p.u).normalize();
+
+        const side = new THREE.Vector3().crossVectors(tangent, new THREE.Vector3(0, 1, 0));
+        if (side.lengthSq() < 0.0001) side.set(1, 0, 0);
+        side.normalize();
+
+        const wob = Math.sin(t * p.wobbleSpeed + p.wobble) * p.drift;
+        const bob = Math.cos(t * (p.wobbleSpeed * 0.8) + p.wobble) * p.drift * 0.65;
+
+        arr[i * 3] = point.x + side.x * wob;
+        arr[i * 3 + 1] = point.y + bob;
+        arr[i * 3 + 2] = point.z + side.z * wob;
+      }
+
+      airflowPoints.geometry.attributes.position.needsUpdate = true;
+    }
+
+    function updateCamera(dt, t) {
+      if (running) {
+        progress += dt * 0.075;
+        if (progress > 1) progress = 1;
+
+        const camBase = cameraPath.getPointAt(progress);
+        const lookBase = lookPath.getPointAt(progress);
+
+        const cinematicShake = new THREE.Vector3(
+          Math.sin(t * 0.85) * 0.03,
+          Math.cos(t * 1.05) * 0.02,
+          Math.sin(t * 0.62) * 0.025
+        );
+
+        camera.position.lerp(camBase.clone().add(cinematicShake), 0.08);
+        camera.lookAt(lookBase);
+      } else {
+        camera.position.x = Math.sin(t * 0.32) * 0.55;
+        camera.position.y = 2 + Math.cos(t * 0.22) * 0.18;
+        camera.position.z = 18 + Math.sin(t * 0.18) * 0.35;
+        camera.lookAt(0, 0.7, 0);
+      }
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const dt = Math.min(clock.getDelta(), 0.033);
+      const t = clock.elapsedTime;
+
+      const breath = Math.sin(t * 1.15);
+      const breath2 = Math.sin(t * 1.15 + 0.18);
+
+      leftLung.scale.set(
+        1 + breath * 0.030,
+        1 + breath * 0.018,
+        1 + breath * 0.024
+      );
+
+      rightLung.scale.set(
+        1 + breath2 * 0.034,
+        1 + breath2 * 0.018,
+        1 + breath2 * 0.026
+      );
+
+      leftLung.rotation.z = Math.sin(t * 0.18) * 0.01;
+      rightLung.rotation.z = -Math.sin(t * 0.18) * 0.01;
+      root.rotation.y = 0.1 + Math.sin(t * 0.14) * 0.03;
+      root.rotation.x = -0.05 + Math.sin(t * 0.24) * 0.006;
+      root.position.y = Math.sin(t * 1.1) * 0.03;
+
+      leftShell.scale.setScalar(0.94 + breath * 0.010);
+      rightShell.scale.setScalar(0.94 + breath2 * 0.010);
+      membrane.scale.setScalar(1 + Math.sin(t * 1.15) * 0.007);
+
+      tracheaMesh.scale.set(
+        1 + Math.sin(t * 1.15) * 0.006,
+        1 + Math.sin(t * 1.15) * 0.012,
+        1 + Math.sin(t * 1.15) * 0.006
+      );
+
+      carinaMesh.scale.setScalar(1 + Math.max(0, Math.sin(t * 2.2)) * 0.06);
+
+      targetOpacity = running && progress > 0.16 ? 0.22 : 1.0;
+      targetTransmission = running && progress > 0.16 ? 0.82 : 0.65;
+      targetBloom = running ? 0.72 : 0.8;
+
+      leftShell.material.opacity = THREE.MathUtils.lerp(leftShell.material.opacity, targetOpacity, dt * 1.8);
+      rightShell.material.opacity = THREE.MathUtils.lerp(rightShell.material.opacity, targetOpacity, dt * 1.8);
+      leftShell.material.transmission = THREE.MathUtils.lerp(leftShell.material.transmission, targetTransmission, dt * 1.8);
+      rightShell.material.transmission = THREE.MathUtils.lerp(rightShell.material.transmission, targetTransmission, dt * 1.8);
+
+      leftLung.children[1].material.opacity = THREE.MathUtils.lerp(leftLung.children[1].material.opacity, targetOpacity * 0.7, dt * 1.6);
+      rightLung.children[1].material.opacity = THREE.MathUtils.lerp(rightLung.children[1].material.opacity, targetOpacity * 0.7, dt * 1.6);
+
+      scene.children.forEach((obj) => {
+        if (obj.isPointLight) {
+          obj.intensity = obj.color.getHex() === 0x00e5ff
+            ? 2.2 + Math.max(0, Math.sin(t * 1.8)) * 0.18
+            : 1.85 + Math.max(0, Math.sin(t * 1.6 + 1.2)) * 0.12;
+        }
+      });
+
+      if (hazeGroup) {
+        hazeGroup.rotation.y = t * 0.035;
+        hazeGroup.rotation.x = Math.sin(t * 0.08) * 0.02;
+        hazeGroup.children.forEach((h, i) => {
+          h.scale.setScalar(1 + Math.sin(t * 0.3 + i) * 0.02);
+        });
+      }
+
+      updateAirflow(dt, t);
+      updateCamera(dt, t);
+
+      if (composer && composer.passes && composer.passes[1]) {
+        composer.passes[1].strength = THREE.MathUtils.lerp(
+          composer.passes[1].strength,
+          targetBloom,
+          dt * 1.4
+        );
+      }
+
+      branchInstanced.rotation.y = Math.sin(t * 0.08) * 0.01;
+      alveoliInstanced.rotation.y = Math.sin(t * 0.09) * 0.014;
+
+      composer.render();
+    }
+
+    buildScene();
+  </script>
 </body>
 </html>
-
